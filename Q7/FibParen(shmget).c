@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
   while (k != i)
   {
     n3 = n1 + n2;
-    sprintf(ptr,"%d", n3);
+    sprintf(ptr, "%d", n3);
     ptr += strlen(ptr);
     n1 = n2;
     n2 = n3;
