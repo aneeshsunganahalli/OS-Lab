@@ -12,6 +12,7 @@ typedef struct
   int startingTime;
   int remainingTime;
   int waitTime;
+  int responseTime;
   int completed;
 } Process;
 
@@ -44,7 +45,10 @@ void calculateTime(Process *processes, int n)
     {
       if (prev != sji)
       {
-        processes[sji].startingTime = processes[sji].startingTime == -1 ? currTime : processes[sji].startingTime;
+        if (processes[sji].startingTime == -1) {
+          processes[sji].startingTime = currTime;
+          processes[sji].responseTime = currTime - processes[sji].arrivalTime;
+        }
         prev = sji;
       }
       processes[sji].remainingTime--;
@@ -59,22 +63,30 @@ void calculateTime(Process *processes, int n)
       printf("| (%d) P%d (%d) ", currTime - 1, processes[sji].pid, currTime);
     }
   }
-  print("|\n");
+  printf("|\n");
 }
 
 void printInfo(Process *processes, int n)
 {
-  int totalTAT = 0, totalWT = 0;
-  float avgTAT = 0, avgWT = 0;
-  printf("");
+  int totalTAT = 0, totalWT = 0, totalRT = 0;
+  float avgTAT = 0, avgWT = 0, avgRT = 0;
+  printf("\nProcess\tArrival\tBurst\tStart\tFinish\tTAT\tWT\tRT\n");
   for (int i = 0; i < n; i++)
   {
-    printf("");
+    printf("P%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n", 
+           processes[i].pid, processes[i].arrivalTime, processes[i].burstTime,
+           processes[i].startingTime, processes[i].finishTime, 
+           processes[i].TATime, processes[i].waitTime, processes[i].responseTime);
     totalTAT += processes[i].TATime;
     totalWT += processes[i].waitTime;
+    totalRT += processes[i].responseTime;
   }
-  avgWT = totalWT / n;
-  avgTAT = totalTAT / n;
+  avgWT = (float)totalWT / n;
+  avgTAT = (float)totalTAT / n;
+  avgRT = (float)totalRT / n;
+  printf("\nAverage Turnaround Time: %.2f", avgTAT);
+  printf("\nAverage Waiting Time: %.2f", avgWT);
+  printf("\nAverage Response Time: %.2f\n", avgRT);
 }
 
 void main()
@@ -89,6 +101,7 @@ void main()
     processes[i].pid = i + 1;
     processes[i].completed = 0;
     processes[i].startingTime = -1;
+    processes[i].responseTime = 0;
     scanf("%d%d", &processes[i].arrivalTime, &processes[i].burstTime);
     processes[i].remainingTime = processes[i].burstTime;
   }
