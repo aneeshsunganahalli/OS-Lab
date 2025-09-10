@@ -109,4 +109,5 @@ void main()
   calculateTime(processes, n);
   printInfo(processes, n);
   free(processes);
+
 }
