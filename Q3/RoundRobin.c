@@ -3,47 +3,35 @@
 
 typedef struct
 {
-  int pid;
-  int arrivalTime;
-  int burstTime;
-  int TATime;
-  int finishTime;
-  int startingTime;
-  int remainingTime;
-  int waitTime;
-  int responseTime;
-  int completed;
+  int pid, AT, BT, CT, TAT, WT, RT, remT, startTime, completed;
 } Process;
 
-void calculateTime(Process *processes, int n, int timeQuantum)
+void RoundRobin(Process *processes, int n, int timeQuantum)
 {
-  int currTime = 0, completed_processes = 0;
+  int currTime = 0, completedProcesses = 0;
   int queue[100], front = 0, rear = 0;
-  int inQueue[100] = {0}; // Track which processes are in queue
-  
-  // Add processes that arrive at time 0 to queue
+  int inQueue[100] = {0};
+
+  // Initially enqueue processes that have arrived at time 0
   for (int i = 0; i < n; i++)
   {
-    if (processes[i].arrivalTime <= currTime)
+    if (processes[i].AT <= currTime)
     {
       queue[rear++] = i;
       inQueue[i] = 1;
     }
   }
-  
-  printf("Gantt Chart:\n");
-  printf("| ");
-  
-  while (completed_processes < n)
+
+  printf("\nGantt Chart:\n| ");
+
+  while (completedProcesses < n)
   {
-    if (front == rear)
+    if (front == rear) // queue empty -> CPU idle
     {
-      // No process in queue, advance time
       currTime++;
-      // Add newly arrived processes
       for (int i = 0; i < n; i++)
       {
-        if (processes[i].arrivalTime <= currTime && !processes[i].completed && !inQueue[i])
+        if (processes[i].AT <= currTime && !processes[i].completed && !inQueue[i])
         {
           queue[rear++] = i;
           inQueue[i] = 1;
@@ -51,48 +39,44 @@ void calculateTime(Process *processes, int n, int timeQuantum)
       }
       continue;
     }
-    
+
     int current = queue[front++];
     inQueue[current] = 0;
-    
-    // Set starting time and response time if first time
-    if (processes[current].startingTime == -1)
+
+    if (processes[current].startTime == -1) // first execution
     {
-      processes[current].startingTime = currTime;
-      processes[current].responseTime = currTime - processes[current].arrivalTime;
+      processes[current].startTime = currTime;
+      processes[current].RT = currTime - processes[current].AT;
     }
-    
-    // Execute for time quantum or remaining time, whichever is smaller
-    int execTime = (processes[current].remainingTime < timeQuantum) ? 
-                   processes[current].remainingTime : timeQuantum;
-    
-    processes[current].remainingTime -= execTime;
+
+    int execTime = (processes[current].remT > timeQuantum) ? timeQuantum : processes[current].remT;
+    processes[current].remT -= execTime;
     currTime += execTime;
-    
+
     printf("P%d (%d) | ", processes[current].pid, currTime);
-    
-    // Add newly arrived processes to queue
+
+    // Enqueue new arrivals
     for (int i = 0; i < n; i++)
     {
-      if (processes[i].arrivalTime <= currTime && !processes[i].completed && !inQueue[i])
+      if (processes[i].AT <= currTime && !processes[i].completed && !inQueue[i] && processes[i].remT > 0)
       {
         queue[rear++] = i;
         inQueue[i] = 1;
       }
     }
-    
-    // Check if process is completed
-    if (processes[current].remainingTime == 0)
+
+    // Check if process completed
+    if (processes[current].remT == 0)
     {
-      processes[current].finishTime = currTime;
-      processes[current].TATime = processes[current].finishTime - processes[current].arrivalTime;
-      processes[current].waitTime = processes[current].TATime - processes[current].burstTime;
+      processes[current].CT = currTime;
+      processes[current].TAT = processes[current].CT - processes[current].AT;
+      processes[current].WT = processes[current].TAT - processes[current].BT;
       processes[current].completed = 1;
-      completed_processes++;
+      completedProcesses++;
     }
     else
     {
-      // Add back to queue if not completed
+      // Re-queue the process
       queue[rear++] = current;
       inQueue[current] = 1;
     }
@@ -103,29 +87,25 @@ void calculateTime(Process *processes, int n, int timeQuantum)
 void printInfo(Process *processes, int n)
 {
   int totalTAT = 0, totalWT = 0, totalRT = 0;
-  float avgTAT = 0, avgWT = 0, avgRT = 0;
   
-  printf("\nProcess\tArrival\tBurst\tStart\tFinish\tTAT\tWT\tRT\n");
-  printf("-------\t-------\t-----\t-----\t------\t---\t--\t--\n");
+  printf("\nProcess\tAT\tBT\tST\tCT\tTAT\tWT\tRT\n");
+  printf("-------\t--\t--\t--\t--\t---\t--\t--\n");
   
   for (int i = 0; i < n; i++)
   {
-    printf("P%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n", 
-           processes[i].pid, processes[i].arrivalTime, processes[i].burstTime,
-           processes[i].startingTime, processes[i].finishTime, 
-           processes[i].TATime, processes[i].waitTime, processes[i].responseTime);
-    totalTAT += processes[i].TATime;
-    totalWT += processes[i].waitTime;
-    totalRT += processes[i].responseTime;
+    printf("P%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
+           processes[i].pid, processes[i].AT, processes[i].BT,
+           processes[i].startTime, processes[i].CT,
+           processes[i].TAT, processes[i].WT, processes[i].RT);
+
+    totalTAT += processes[i].TAT;
+    totalWT += processes[i].WT;
+    totalRT += processes[i].RT;
   }
   
-  avgWT = (float)totalWT / n;
-  avgTAT = (float)totalTAT / n;
-  avgRT = (float)totalRT / n;
-  
-  printf("\nAverage Turnaround Time: %.2f", avgTAT);
-  printf("\nAverage Waiting Time: %.2f", avgWT);
-  printf("\nAverage Response Time: %.2f\n", avgRT);
+  printf("\nAverage Turnaround Time: %.2f", (float)totalTAT / n);
+  printf("\nAverage Waiting Time: %.2f", (float)totalWT / n);
+  printf("\nAverage Response Time: %.2f\n", (float)totalRT / n);
 }
 
 int main()
@@ -142,16 +122,17 @@ int main()
   
   for (int i = 0; i < n; i++)
   {
-    printf("Enter the arrival time and burst time for process %d: ", i + 1);
+    printf("Enter Arrival Time and Burst Time for process %d: ", i + 1);
     processes[i].pid = i + 1;
+    scanf("%d%d", &processes[i].AT, &processes[i].BT);
+    processes[i].remT = processes[i].BT;
+    processes[i].startTime = -1;
+    processes[i].RT = 0;
+    processes[i].CT = 0;
     processes[i].completed = 0;
-    processes[i].startingTime = -1;
-    processes[i].responseTime = 0;
-    scanf("%d%d", &processes[i].arrivalTime, &processes[i].burstTime);
-    processes[i].remainingTime = processes[i].burstTime;
   }
   
-  calculateTime(processes, n, timeQuantum);
+  RoundRobin(processes, n, timeQuantum);
   printInfo(processes, n);
   
   free(processes);
