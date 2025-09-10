@@ -33,38 +33,37 @@ void sortByArrivalTime(Process *processes, int n)
 
 void calculateTime(Process *processes, int n)
 {
-  int currTime = 0;
-  
-  printf("Gantt Chart:\n");
-  printf("| ");
-  
-  for (int i = 0; i < n; i++)
-  {
-    // If CPU is idle (current time < arrival time of next process)
-    if (currTime < processes[i].arrivalTime)
+    int currTime = 0;
+    printf("\nGantt Chart:\n| ");
+
+    for (int i = 0; i < n; i++)
     {
-      printf("IDLE (%d) | ", processes[i].arrivalTime);
-      currTime = processes[i].arrivalTime;
+        // Handle idle time
+        if (currTime < processes[i].arrivalTime)
+        {
+            printf("IDLE (%d–%d) | ", currTime, processes[i].arrivalTime);
+            currTime = processes[i].arrivalTime;
+        }
+
+        // Start time & response time
+        processes[i].startingTime = currTime;
+        processes[i].responseTime = currTime - processes[i].arrivalTime;
+
+        // Run the process
+        currTime += processes[i].burstTime;
+        processes[i].finishTime = currTime;
+
+        // Turnaround & waiting times
+        processes[i].TATime = processes[i].finishTime - processes[i].arrivalTime;
+        processes[i].waitTime = processes[i].TATime - processes[i].burstTime;
+        processes[i].completed = 1;
+
+        // Print Gantt chart segment
+        printf("P%d (%d–%d) | ", processes[i].pid, processes[i].startingTime, processes[i].finishTime);
     }
-    
-    // Set starting time and response time
-    processes[i].startingTime = currTime;
-    processes[i].responseTime = currTime - processes[i].arrivalTime;
-    
-    // Execute the process
-    currTime += processes[i].burstTime;
-    processes[i].finishTime = currTime;
-    
-    // Calculate TAT and Wait Time
-    processes[i].TATime = processes[i].finishTime - processes[i].arrivalTime;
-    processes[i].waitTime = processes[i].TATime - processes[i].burstTime;
-    
-    processes[i].completed = 1;
-    
-    printf("P%d (%d) | ", processes[i].pid, currTime);
-  }
-  printf("\n");
+    printf("\n");
 }
+
 
 void printInfo(Process *processes, int n)
 {
